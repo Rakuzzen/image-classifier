@@ -30,11 +30,7 @@ test_images <- list()
 trainx <- NULL
 testx <- NULL
 trainy <- NULL
-#Armazenando as respostas corretas das imagens de teste (0 gato, 1 cachorro)
-testy <- c(1,1,1,1,0,0,0,0,0,0,
-           0,1,0,0,0,0,1,1,0,0,
-           1,0,1,1,0,1,1,0,0,1,
-           1,0,1)
+testy <- NULL
 
 #Criando barra de progressos
 progress_bar <- winProgressBar(title = "Get_image_array", min = 0, 
@@ -50,10 +46,12 @@ for(i in 1:length(cat_and_dog_names)){
     test_images <- getImageArray('test/',test_names, i)
     testx <- rbind(testx, test_images[[i]]) 
   }
-  #Gera as 300 primeiras respostas (Gatos)
+
   if(i <= length(cat_and_dog_names) / 2) trainy <- c(trainy,0)
-  #Gera as 300 ultimas respostas (Cachorros)
   else trainy <- c(trainy,1)
+  
+  if(i <= length(test_names) / 2) testy <- c(testy,0)
+  else if(i <=length(test_names) && i > length(test_names) / 2) testy <- c(testy,1)
   #Executando barra de progressos
   setWinProgressBar(progress_bar, i, title=paste(round(i/length(cat_and_dog_names)*100, 0),"% done"))
 }
@@ -77,14 +75,14 @@ summary(model)
 
 model %>%
   #Compilando modelo
-  compile(loss = 'binary_crossentropy',
-          optimizer = optimizer_rmsprop(),
+  compile(loss = 'categorical_crossentropy',
+          optimizer = optimizer_rmsprop(lr = 0.0001),
           metrics = 'accuracy')
 
 history <- model %>%
   fit(trainx,
       trainLabels,
-      epochs = 33,
+      epochs = 50,
       batch_size = 32,
       validation_split = 0.3)
 
@@ -97,7 +95,7 @@ train_pred <- model %>% predict_classes(trainx)
 #Retorna a probabilidade de ser uma coisa ou outra
 train_probability <- model %>% predict_proba(trainx)
 #Retorna a probabilidade de ser uma classe ou outra, a previsão e a resposta correta
-cbind(train_probability, Predicted = train_pred, Correct = trainy)
+trainResult <- cbind(CatProb = train_probability[,1], DogProb = train_probability[,2], Predicted = train_pred, Correct = trainy)
 
 
 #Avalia os dados de teste
@@ -107,5 +105,7 @@ test_pred <- model %>% predict_classes(testx)
 #Retorna a probabilidade de ser uma coisa ou outra
 test_probability <- model %>% predict_proba(testx)
 #Retorna a probabilidade de ser uma classe ou outra, a previsão e a resposta correta
-cbind(test_probability, Predicted = test_pred, Correct = testy)
+testResult <- cbind(CatProb = test_probability[,1], DogProb = test_probability[,2], Predicted = test_pred, Correct = testy)
+View(testResult)
+
 
